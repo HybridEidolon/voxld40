@@ -1,21 +1,27 @@
 pub mod chunk;
 pub mod bundle;
+pub mod world_slice;
 
 pub use self::chunk::{
     ChunkIndex,
     ChunkIndexPositionSystem,
     ClearIndexFlagSystem,
+    Face,
+    Side,
+    Axis,
 };
 pub use self::chunk::data::{
     ChunkData,
+    Voxel,
+    CHUNK_SIZE,
 };
 pub use self::chunk::mesh::{
     ChunkQuads,
     MeshFaceSystem,
 };
 pub use self::chunk::material::ChunkMaterialSystem;
-
 pub use self::bundle::VoxelBundle;
+pub use self::world_slice::*;
 
 use std::collections::HashMap;
 
@@ -41,7 +47,7 @@ impl VoxelWorld {
         }
     }
 
-    pub fn insert(&mut self, index: (i32, i32, i32), entity: Entity) {
+    fn insert(&mut self, index: (i32, i32, i32), entity: Entity) {
         self.index_entity.insert(index, entity);
     }
 
@@ -50,7 +56,7 @@ impl VoxelWorld {
         self.index_entity.get(&index).map(|e| *e)
     }
 
-    pub fn clear_dead(&mut self, entities: &EntitiesRes) {
+    fn clear_dead(&mut self, entities: &EntitiesRes) {
         self.index_entity.retain(|_, e| {
             entities.is_alive(*e)
         });
