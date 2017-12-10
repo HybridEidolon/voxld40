@@ -1,26 +1,30 @@
+use std::ops::Deref;
 use super::{
     ChunkData,
     VoxelWorld,
     Voxel,
     CHUNK_SIZE,
+    Side,
 };
 use specs::{
-    ReadStorage,
+    Storage,
     Fetch,
+    MaskedStorage,
 };
 
-pub struct WorldSlice<'a, 'b: 'a> {
-    chunk_datas: &'a ReadStorage<'b, ChunkData>,
+pub struct WorldSlice<'a, 'b: 'a, T: 'b> {
+    chunk_datas: &'a Storage<'b, ChunkData, T>,
     voxel_world: &'a Fetch<'b, VoxelWorld>,
 
     /// chunk index representing the origin for this slice
     origin: (i32, i32, i32),
 }
 
-impl<'a, 'b: 'a> WorldSlice<'a, 'b> {
-    pub fn new(chunk_datas: &'b ReadStorage<'a, ChunkData>,
-               voxel_world: &'b Fetch<'a, VoxelWorld>,
-               origin: (i32, i32, i32)) -> WorldSlice<'a, 'b>
+impl<'a, 'b: 'a, T: 'b> WorldSlice<'a, 'b, T>
+where T: Deref<Target=MaskedStorage<ChunkData>> {
+    pub fn new(chunk_datas: &'a Storage<'b, ChunkData, T>,
+               voxel_world: &'a Fetch<'b, VoxelWorld>,
+               origin: (i32, i32, i32)) -> WorldSlice<'a, 'b, T>
     {
         WorldSlice {
             chunk_datas,
@@ -49,6 +53,10 @@ impl<'a, 'b: 'a> WorldSlice<'a, 'b> {
         .map(|&chunk_data| {
             chunk_data.get_voxel(chunk_index)
         })
+    }
+
+    pub fn get_voxel_face(&self, index: (i32, i32, i32), _side: Side) -> Option<Voxel> {
+        self.get_voxel(index)
     }
 }
 

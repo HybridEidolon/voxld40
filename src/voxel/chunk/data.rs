@@ -32,6 +32,7 @@ impl ChunkData {
     }
 
     #[inline]
+    #[allow(unused)]
     pub fn get_voxel_face(&self, index: (usize, usize, usize), _side: Side) -> Voxel {
         // TODO change this to allow for different faces on each side of a voxel...
         self.get_voxel(index)

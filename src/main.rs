@@ -6,6 +6,8 @@ extern crate rayon;
 extern crate amethyst;
 extern crate genmesh;
 extern crate hibitset;
+extern crate noise;
+extern crate fnv;
 
 pub use amethyst::shred as shred;
 pub use amethyst::shrev as shrev;
@@ -39,14 +41,14 @@ fn run() -> amethyst::Result<()> {
     let display_config = get_display_config().unwrap();
 
     let game = Application::build("", app::PhantomInit)?
-        // .with_frame_limit(
-        //     FrameRateLimitStrategy::SleepAndYield(Duration::from_millis(2)),
-        //     300,
-        // )
         .with_frame_limit(
-            FrameRateLimitStrategy::Unlimited,
-            0,
+            FrameRateLimitStrategy::SleepAndYield(Duration::from_millis(2)),
+            300,
         )
+        // .with_frame_limit(
+        //     FrameRateLimitStrategy::Unlimited,
+        //     0,
+        // )
         .with_bundle(voxel::VoxelBundle)?
         .with_bundle(amethyst::core::transform::TransformBundle::new())?
         .with_bundle(amethyst::utils::fps_counter::FPSCounterBundle::default())?

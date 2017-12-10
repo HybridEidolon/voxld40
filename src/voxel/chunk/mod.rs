@@ -37,6 +37,12 @@ impl From<(i32, i32, i32)> for ChunkIndex {
     }
 }
 
+impl Into<(i32, i32, i32)> for ChunkIndex {
+    fn into(self) -> (i32, i32, i32) {
+        (self.x, self.y, self.z)
+    }
+}
+
 pub struct ChunkIndexPositionSystem;
 
 impl<'a> System<'a> for ChunkIndexPositionSystem {

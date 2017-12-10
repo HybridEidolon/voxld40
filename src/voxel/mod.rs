@@ -23,7 +23,7 @@ pub use self::chunk::material::ChunkMaterialSystem;
 pub use self::bundle::VoxelBundle;
 pub use self::world_slice::*;
 
-use std::collections::HashMap;
+use fnv::FnvHashMap;
 
 use specs::{
     Entity,
@@ -37,13 +37,13 @@ use specs::{
 
 /// A resource that keeps track of the entities representing chunks.
 pub struct VoxelWorld {
-    index_entity: HashMap<(i32, i32, i32), Entity>,
+    index_entity: FnvHashMap<(i32, i32, i32), Entity>,
 }
 
 impl VoxelWorld {
     pub fn new() -> Self {
         VoxelWorld {
-            index_entity: HashMap::new(),
+            index_entity: FnvHashMap::default(),
         }
     }
 

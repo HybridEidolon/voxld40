@@ -871,6 +871,15 @@ version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "noise"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num-traits 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "num-traits"
 version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1434,9 +1443,11 @@ name = "voxld40"
 version = "0.1.0"
 dependencies = [
  "amethyst 0.5.1 (git+https://github.com/amethyst/amethyst/?rev=2a1a1e6)",
+ "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "genmesh 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hibitset 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "noise 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1691,6 +1702,7 @@ dependencies = [
 "checksum mint 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9bff0e0f087fb336a1a4c10415456b64d69ed736d73d0d25a7e1b3584794277c"
 "checksum mopa 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a785740271256c230f57462d3b83e52f998433a7062fc18f96d5999474a9f915"
 "checksum nodrop 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)" = "9a2228dca57108069a5262f2ed8bd2e82496d2e074a06d1ccc7ce1687b6ae0a2"
+"checksum noise 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "77152bd10ae7b1dd2968c5dc7e4f4341ebe306bf8f48990c52fe1ae39a1d0033"
 "checksum num-traits 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)" = "cacfcab5eb48250ee7d0c7896b51a2c5eec99c1feea5f32025635f5ae4b00070"
 "checksum num_cpus 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "514f0d73e64be53ff320680ca671b64fe3fb91da01e1ae2ddc99eb51d453b20d"
 "checksum objc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "877f30f37acef6749b1841cceab289707f211aecfc756553cd63976190e6cc2e"

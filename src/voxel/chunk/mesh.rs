@@ -1,15 +1,21 @@
 //! The meshing algorithm used here is derived from
 //! https://0fps.net/2012/06/30/meshing-in-a-minecraft-game/
 
-use super::{ChunkData, Axis, Side, Face};
+use super::{ChunkData, ChunkIndex, Axis, Side, Face};
 use super::data::{CHUNK_SIZE, Voxel};
+use super::super::world_slice::WorldSlice;
+use super::super::VoxelWorld;
+
+use std::ops::Deref;
 
 use amethyst::assets::{AssetStorage, Loader};
 use amethyst::renderer::{Mesh, MeshHandle};
 use specs::{
     Entities,
     System,
+    ReadStorage,
     WriteStorage,
+    MaskedStorage,
     Fetch,
     Component,
     HashMapStorage,
@@ -48,30 +54,60 @@ impl Default for MeshFaceSystem {
 impl<'a> System<'a> for MeshFaceSystem {
     type SystemData = (
         Entities<'a>,
+        ReadStorage<'a, ChunkIndex>,
         WriteStorage<'a, ChunkData>,
         WriteStorage<'a, ChunkQuads>,
         WriteStorage<'a, MeshHandle>,
         Fetch<'a, Loader>,
         Fetch<'a, AssetStorage<Mesh>>,
+        Fetch<'a, VoxelWorld>,
     );
 
     fn run(
         &mut self,
         (
             entities,
+            chunk_indices,
             mut chunk_datas,
             mut chunk_meshes,
             mut mesh_handles,
             loader,
             mesh_storage,
+            voxel_world,
         ): Self::SystemData
     ) {
         use amethyst::renderer::{MeshData, PosNormTex};
 
-        ((&chunk_datas).open().1.open().0, (&chunk_datas), &mut chunk_meshes)
-            .par_join().for_each(|(_, data, quads)| {
-                quads_from_data(data, quads)
-            });
+        // create the world slice handle
+
+        // {
+        //     let chunk_data = &chunk_datas;
+        //     let world = &voxel_world;
+        //     ((&chunk_datas).open().1.open().0, &mut chunk_meshes)
+        //         .par_join()
+        //         .for_each(|(_, data, quads)| {
+        //             let world_slice = WorldSlice::new(
+        //                 chunk_data,
+        //                 world,
+        //                 (0, 0, 0),
+        //             );
+        //             quads_from_data(data, quads)
+        //         });
+        // }
+        {
+            let chunk_datas = &chunk_datas;
+            let world = &voxel_world;
+            ((chunk_datas).open().1.open().0, &mut chunk_meshes, &chunk_indices)
+                .par_join()
+                .for_each(|(_, chunk_mesh, index)| {
+                    let world_slice = WorldSlice::new(
+                        chunk_datas,
+                        world,
+                        (*index).into(),
+                    );
+                    quads_from_data(&world_slice, chunk_mesh)
+                });
+        }
         
         // load the meshes into the asset registry
         for (entity, chunk_quads, _) in (&*entities, &chunk_meshes, (&chunk_datas).open().1.open().0).join() {
@@ -94,26 +130,38 @@ impl<'a> System<'a> for MeshFaceSystem {
                         Side::North => [0., 0., 1.],
                         Side::South => [0., 0., -1.],
                     };
+                    // let tangent: [f32; 3] = match q.1 {
+                    //     Side::Bottom => [-1., 0., 0.],
+                    //     Side::Top => [1., 0., 0.],
+                    //     Side::East => [0., 1., 0.],
+                    //     Side::West => [0., -1., 0.],
+                    //     Side::North => [0., 1., 0.],
+                    //     Side::South => [0., -1., 0.],
+                    // };
 
                     Quad::new(
                         PosNormTex {
                             position: q.0[0].into(),
                             normal,
+                            // tangent,
                             tex_coord: [0., 0.],
                         },
                         PosNormTex {
                             position: q.0[1].into(),
                             normal,
+                            // tangent,
                             tex_coord: [0., 1.],
                         },
                         PosNormTex {
                             position: q.0[2].into(),
                             normal,
+                            // tangent,
                             tex_coord: [1., 1.],
                         },
                         PosNormTex {
                             position: q.0[3].into(),
                             normal,
+                            // tangent,
                             tex_coord: [1., 0.],
                         },
                     )
@@ -162,7 +210,9 @@ fn get_rcd_xyz_array<N>(axis: Axis, row: N, col: N, depth: N) -> [N; 3] {
     }
 }
 
-fn quads_from_data(data: &ChunkData, mesh: &mut ChunkQuads) {
+fn quads_from_data<'a, 'b: 'a, T>(data: &WorldSlice<'a, 'b, T>, mesh: &mut ChunkQuads)
+where T: Deref<Target=MaskedStorage<ChunkData>>
+{
     mesh.quads.clear();
 
     for face in FACES.into_iter() {
@@ -175,17 +225,20 @@ fn quads_from_data(data: &ChunkData, mesh: &mut ChunkQuads) {
                 // set the culled slice
                 for r in 0..CHUNK_SIZE {
                     for c in 0..CHUNK_SIZE {
-                        let face_1 = if depth >= 0 && depth < CHUNK_SIZE as isize {
-                            Some(data.get_voxel_face(get_rcd_xyz(*axis, r, c, depth as usize), side))
-                        } else {
-                            None
-                        };
+                        // let face_1 = if depth >= 0 && depth < CHUNK_SIZE as isize {
+                        //     Some(data.get_voxel_face(get_rcd_xyz(*axis, r as i32, c as i32, depth as usize), side))
+                        // } else {
+                        //     None
+                        // };
+                        let face_1 = data.get_voxel_face(get_rcd_xyz(*axis, r as i32, c as i32, depth as i32), side);
 
-                        let face_2 = if depth >= -1 && depth < CHUNK_SIZE as isize - 1 {
-                            Some(data.get_voxel_face(get_rcd_xyz(*axis, r, c, (depth + 1) as usize), side))
-                        } else {
-                            None
-                        };
+
+                        // let face_2 = if depth >= -1 && depth < CHUNK_SIZE as isize - 1 {
+                        //     Some(data.get_voxel_face(get_rcd_xyz(*axis, r, c, (depth + 1) as usize), side))
+                        // } else {
+                        //     None
+                        // };
+                        let face_2 = data.get_voxel_face(get_rcd_xyz(*axis, r as i32, c as i32, (depth + 1) as i32), side);
 
                         slice[r][c] = if face_1.is_some() && face_2.is_some() && face_1 == face_2 {
                             None
