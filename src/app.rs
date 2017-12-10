@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use amethyst::State;
 use amethyst::core::{LocalTransform, Transform, Parent};
-use amethyst::renderer::{Camera, DirectionalLight, Light, Rgba};
+use amethyst::renderer::{Camera, DirectionalLight, PointLight, Light, Rgba};
 use amethyst::core::orientation::Orientation;
 use specs::World;
 use cgmath::{vec3, Deg};
@@ -16,8 +16,10 @@ use noise::{
     Constant,
     Perlin,
     ScalePoint,
+    Seedable,
 };
 use rayon::prelude::*;
+use rand;
 
 use voxel::{ChunkIndex, ChunkData, ChunkQuads};
 
@@ -33,7 +35,7 @@ impl State for PhantomInit {
                 Constant::new(0.5),
                 Multiply::new(
                     Constant::new(0.5),
-                    ScalePoint::new(Perlin::new()).set_scale(0.5),
+                    ScalePoint::new(Perlin::new().set_seed(rand::random())).set_scale(0.5),
                 )
             )
         );
@@ -163,8 +165,22 @@ impl State for PhantomInit {
             })
             .with(Transform::default())
             .with(Light::Directional(DirectionalLight {
-                color: Rgba::white(),
+                color: Rgba(0.05, 0.05, 0.1, 1.0),
                 direction: vec3(-1.0, -1.0, -1.1).normalize().into(),
+                ..Default::default()
+            }))
+            .build();
+        
+        world.create_entity()
+            .with({
+                LocalTransform::default()
+            })
+            .with(Transform::default())
+            .with(Light::Point(PointLight {
+                center: [-4.0, 32.0, -4.0],
+                color: Rgba(1.0, 1.0, 0.0, 1.0),
+                intensity: 300.,
+                radius: 8.,
                 ..Default::default()
             }))
             .build();

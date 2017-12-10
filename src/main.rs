@@ -8,6 +8,7 @@ extern crate genmesh;
 extern crate hibitset;
 extern crate noise;
 extern crate fnv;
+extern crate rand;
 
 pub use amethyst::shred as shred;
 pub use amethyst::shrev as shrev;
