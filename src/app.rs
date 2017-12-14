@@ -40,8 +40,8 @@ impl State for PhantomInit {
             )
         );
 
-        const SIZE_X: i32 = 8;
-        const SIZE_Z: i32 = 8;
+        const SIZE_X: i32 = 12;
+        const SIZE_Z: i32 = 12;
 
         let datas: HashMap<i32, HashMap<i32, ChunkData>> = ((-SIZE_X)..(SIZE_X)).into_par_iter().map(|chunk_x| {
             (chunk_x, ((-SIZE_Z)..(SIZE_Z)).into_par_iter().map(|chunk_z| {

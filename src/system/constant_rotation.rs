@@ -37,7 +37,7 @@ impl<'a> System<'a> for ConstantRotationSystem {
         (&constant_rotations, &mut local_transforms)
         .join()
         .for_each(|(_constant_rotation, local_transform)| {
-            local_transform.rotate_local(vec3(0., 1., 0.), Deg(90. * delta_time));
+            local_transform.rotate_local(vec3(0., 1., 0.), Deg(10. * delta_time));
         });
     }
 }

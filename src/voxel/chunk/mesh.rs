@@ -78,22 +78,6 @@ impl<'a> System<'a> for MeshFaceSystem {
     ) {
         use amethyst::renderer::{MeshData, PosNormTex};
 
-        // create the world slice handle
-
-        // {
-        //     let chunk_data = &chunk_datas;
-        //     let world = &voxel_world;
-        //     ((&chunk_datas).open().1.open().0, &mut chunk_meshes)
-        //         .par_join()
-        //         .for_each(|(_, data, quads)| {
-        //             let world_slice = WorldSlice::new(
-        //                 chunk_data,
-        //                 world,
-        //                 (0, 0, 0),
-        //             );
-        //             quads_from_data(data, quads)
-        //         });
-        // }
         {
             let chunk_datas = &chunk_datas;
             let world = &voxel_world;
