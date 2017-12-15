@@ -54,6 +54,7 @@ where T: Deref<Target=MaskedStorage<ChunkData>> {
         }
     }
 
+    #[inline(always)]
     pub fn get_voxel(&self, index: (i32, i32, i32)) -> Option<Voxel> {
         let origin_offset = (
             adjust_origin_offset(index.0) / CHUNK_SIZE as i32,
