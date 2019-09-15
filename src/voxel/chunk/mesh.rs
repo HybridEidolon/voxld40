@@ -8,19 +8,30 @@ use super::super::VoxelWorld;
 
 use std::ops::Deref;
 
-use amethyst::assets::{AssetStorage, Loader};
-use amethyst::renderer::{Mesh, MeshHandle};
+use amethyst::assets::{AssetStorage, Loader, Handle};
+use amethyst::renderer::{Mesh, rendy::mesh::TexCoord, rendy::mesh::Normal, rendy::mesh::MeshBuilder};
+use amethyst::renderer::rendy::hal::Primitive;
+use amethyst::renderer::visibility::BoundingSphere;
 use specs::{
     Entities,
     System,
     ReadStorage,
     WriteStorage,
-    MaskedStorage,
-    Fetch,
+    storage::MaskedStorage,
+    ReaderId,
+    storage::ComponentEvent,
     Component,
     HashMapStorage,
     Join,
     ParJoin,
+    BitSet,
+    SystemData,
+};
+use shred::{
+    Fetch,
+    ReadExpect,
+    Resources,
+    SetupHandler,
 };
 use rayon::prelude::*;
 use cgmath::Vector3;
@@ -40,12 +51,14 @@ impl Component for ChunkQuads {
 /// Starts by turning contiguous faces into polygons and then
 /// triangulating those into meshes.
 pub struct MeshFaceSystem {
+    reader_id: Option<ReaderId<ComponentEvent>>,
     _unused: (),
 }
 
 impl Default for MeshFaceSystem {
     fn default() -> Self {
         MeshFaceSystem {
+            reader_id: None,
             _unused: (),
         }
     }
@@ -57,10 +70,11 @@ impl<'a> System<'a> for MeshFaceSystem {
         ReadStorage<'a, ChunkIndex>,
         WriteStorage<'a, ChunkData>,
         WriteStorage<'a, ChunkQuads>,
-        WriteStorage<'a, MeshHandle>,
-        Fetch<'a, Loader>,
-        Fetch<'a, AssetStorage<Mesh>>,
-        Fetch<'a, VoxelWorld>,
+        WriteStorage<'a, BoundingSphere>,
+        WriteStorage<'a, Handle<Mesh>>,
+        ReadExpect<'a, Loader>,
+        ReadExpect<'a, AssetStorage<Mesh>>,
+        ReadExpect<'a, VoxelWorld>
     );
 
     fn run(
@@ -70,18 +84,32 @@ impl<'a> System<'a> for MeshFaceSystem {
             chunk_indices,
             mut chunk_datas,
             mut chunk_meshes,
+            mut bounding_spheres,
             mut mesh_handles,
             loader,
             mesh_storage,
             voxel_world,
         ): Self::SystemData
     ) {
-        use amethyst::renderer::{MeshData, PosNormTex};
+        use amethyst::renderer::types::MeshData;
+        use amethyst::renderer::rendy::mesh::PosNormTex;
+
+        // Handle incoming chunk data change events
+        let change_events = chunk_datas.channel().read(self.reader_id.as_mut().unwrap());
+        let mut dirty_chunk_datas = BitSet::new();
+        for event in change_events {
+            match event {
+                ComponentEvent::Modified(id) | ComponentEvent::Inserted(id) => {
+                    dirty_chunk_datas.add(*id);
+                },
+                _ => (),
+            }
+        }
 
         {
             let chunk_datas = &chunk_datas;
             let world = &voxel_world;
-            ((chunk_datas).open().1.open().0, &mut chunk_meshes, &chunk_indices)
+            (&dirty_chunk_datas, &mut chunk_meshes, &chunk_indices)
                 .par_join()
                 .for_each(|(_, chunk_mesh, index)| {
                     let world_slice = WorldSlice::new(
@@ -94,7 +122,7 @@ impl<'a> System<'a> for MeshFaceSystem {
         }
         
         // load the meshes into the asset registry
-        for (entity, chunk_quads, _) in (&*entities, &chunk_meshes, (&chunk_datas).open().1.open().0).join() {
+        for (entity, chunk_quads, _) in (&*entities, &chunk_meshes, &dirty_chunk_datas).join() {
             // No reusing indices, I suppose.
             use genmesh::*;
 
@@ -106,13 +134,13 @@ impl<'a> System<'a> for MeshFaceSystem {
 
             let verts: Vec<PosNormTex> = chunk_quads.quads.iter()
                 .map(|q| {
-                    let normal: [f32; 3] = match q.1 {
-                        Side::Bottom => [0., -1., 0.],
-                        Side::Top => [0., 1., 0.],
-                        Side::East => [1., 0., 0.],
-                        Side::West => [-1., 0., 0.],
-                        Side::North => [0., 0., 1.],
-                        Side::South => [0., 0., -1.],
+                    let normal: amethyst::renderer::rendy::mesh::Normal = match q.1 {
+                        Side::Bottom => Normal([0., -1., 0.]),
+                        Side::Top => Normal([0., 1., 0.]),
+                        Side::East => Normal([1., 0., 0.]),
+                        Side::West => Normal([-1., 0., 0.]),
+                        Side::North => Normal([0., 0., 1.]),
+                        Side::South => Normal([0., 0., -1.]),
                     };
                     // let tangent: [f32; 3] = match q.1 {
                     //     Side::Bottom => [-1., 0., 0.],
@@ -128,43 +156,61 @@ impl<'a> System<'a> for MeshFaceSystem {
                             position: q.0[0].into(),
                             normal,
                             // tangent,
-                            tex_coord: [0., 0.],
+                            tex_coord: TexCoord([0., 0.]),
                         },
                         PosNormTex {
                             position: q.0[1].into(),
                             normal,
                             // tangent,
-                            tex_coord: [0., 1.],
+                            tex_coord: TexCoord([0., 1.]),
                         },
                         PosNormTex {
                             position: q.0[2].into(),
                             normal,
                             // tangent,
-                            tex_coord: [1., 1.],
+                            tex_coord: TexCoord([1., 1.]),
                         },
                         PosNormTex {
                             position: q.0[3].into(),
                             normal,
                             // tangent,
-                            tex_coord: [1., 0.],
+                            tex_coord: TexCoord([1., 0.]),
                         },
                     )
                 })
                 .triangulate()
                 .vertices()
                 .collect();
+            let positions = verts.iter().map(|v| { v.position }).collect::<Vec<_>>();
+            let normals = verts.iter().map(|v| { v.normal }).collect::<Vec<_>>();
+            let tex_coords = verts.iter().map(|v| { v.tex_coord }).collect::<Vec<_>>();
 
             let mesh_handle = loader.load_from_data(
-                MeshData::PosNormTex(verts),
+                MeshBuilder::new()
+                    .with_vertices(positions)
+                    .with_vertices(normals)
+                    .with_vertices(tex_coords)
+                    .with_prim_type(Primitive::TriangleList)
+                    .into()
+                ,
                 (),
                 &*mesh_storage
             );
 
             mesh_handles.insert(entity, mesh_handle);
+            bounding_spheres.insert(entity, BoundingSphere {
+                radius: 22.7f32,
+                ..Default::default()
+            });
         }
 
         // all meshed up, unset dirty bits
-        (&mut chunk_datas).open().1.clear_flags();
+//        (&mut chunk_datas).open().1.clear_flags();
+    }
+
+    fn setup(&mut self, res: &mut Resources) {
+        <Self::SystemData as SystemData>::setup(res);
+        self.reader_id = Some(WriteStorage::<ChunkData>::fetch(res).register_reader())
     }
 }
 

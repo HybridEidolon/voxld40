@@ -1,13 +1,13 @@
-use amethyst::utils::fps_counter::FPSCounter;
+use amethyst::utils::fps_counter::FpsCounter;
 use specs::{
     System,
-    Fetch,
 };
+use shred::{Fetch, ReadExpect};
 
 pub struct LogFps;
 
 impl<'a> System<'a> for LogFps {
-    type SystemData = Fetch<'a, FPSCounter>;
+    type SystemData = ReadExpect<'a, FpsCounter>;
 
     fn run(&mut self, time: Self::SystemData) {
         println!("{}", time.sampled_fps());

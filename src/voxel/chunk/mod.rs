@@ -13,7 +13,7 @@ use specs::{
     WriteStorage,
     Join,
 };
-use amethyst::core::LocalTransform;
+use amethyst::core::Transform;
 use cgmath::Vector3;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -48,16 +48,16 @@ pub struct ChunkIndexPositionSystem;
 impl<'a> System<'a> for ChunkIndexPositionSystem {
     type SystemData = (
         ReadStorage<'a, ChunkIndex>,
-        WriteStorage<'a, LocalTransform>,
+        WriteStorage<'a, Transform>,
     );
 
     fn run(&mut self, (chunk_idxs, mut locals): Self::SystemData) {
-        for (chunk_index, local) in ((&chunk_idxs).open().1, &mut locals).join() {
-            local.translation = Vector3::new(
+        for (chunk_index, mut local) in (&chunk_idxs, &mut locals).join() {
+            local.set_translation(Vector3::new(
                 data::CHUNK_SIZE_FLOAT * chunk_index.x as f32,
                 data::CHUNK_SIZE_FLOAT * chunk_index.y as f32,
                 data::CHUNK_SIZE_FLOAT * chunk_index.z as f32,
-            );
+            ));
         }
     }
 }
@@ -125,13 +125,13 @@ impl From<Side> for (Axis, Face) {
     }
 }
 
-#[allow(unused)]
-pub struct ClearIndexFlagSystem;
-
-impl<'a> System<'a> for ClearIndexFlagSystem {
-    type SystemData = WriteStorage<'a, ChunkIndex>;
-
-    fn run(&mut self, mut chunk_indices: Self::SystemData) {
-        (&mut chunk_indices).open().1.clear_flags();
-    }
-}
+//#[allow(unused)]
+//pub struct ClearIndexFlagSystem;
+//
+//impl<'a> System<'a> for ClearIndexFlagSystem {
+//    type SystemData = WriteStorage<'a, ChunkIndex>;
+//
+//    fn run(&mut self, mut chunk_indices: Self::SystemData) {
+//        (&mut chunk_indices).open().1.clear_flags();
+//    }
+//}

@@ -5,7 +5,7 @@ pub mod world_slice;
 pub use self::chunk::{
     ChunkIndex,
     ChunkIndexPositionSystem,
-    ClearIndexFlagSystem,
+//    ClearIndexFlagSystem,
     Face,
     Side,
     Axis,
@@ -28,12 +28,12 @@ use fnv::FnvHashMap;
 use specs::{
     Entity,
     Entities,
-    EntitiesRes,
+    world::EntitiesRes,
     System,
     ReadStorage,
-    FetchMut,
     Join,
 };
+use shred::{FetchMut, WriteExpect};
 
 /// A resource that keeps track of the entities representing chunks.
 pub struct VoxelWorld {
@@ -68,7 +68,7 @@ pub struct Bookkeeper;
 
 impl<'a> System<'a> for Bookkeeper {
     type SystemData = (
-        FetchMut<'a, VoxelWorld>,
+        WriteExpect<'a, VoxelWorld>,
         Entities<'a>,
         ReadStorage<'a, ChunkIndex>,
     );

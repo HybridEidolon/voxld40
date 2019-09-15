@@ -13,7 +13,7 @@ extern crate rand;
 pub use amethyst::shred as shred;
 pub use amethyst::shrev as shrev;
 pub use amethyst::ecs as specs;
-pub use amethyst::core::cgmath as cgmath;
+pub use amethyst::core::math as cgmath;
 
 mod voxel;
 mod app;
@@ -22,56 +22,51 @@ mod log_fps;
 
 use std::time::Duration;
 
-use amethyst::Application;
+use amethyst::{Application, GameDataBuilder};
 use amethyst::core::frame_limiter::FrameRateLimitStrategy;
-use amethyst::renderer::{RenderSystem, Pipeline, Stage, DisplayConfig, DrawShaded, PosNormTex};
+//use amethyst::renderer::{RenderSystem, Pipeline, Stage, DisplayConfig, DrawShaded, PosNormTex};
+use amethyst::renderer::{RenderingBundle, plugins::RenderShaded3D, plugins::RenderSkybox, plugins::RenderToWindow, types::DefaultBackend, bundle::Target};
+use amethyst::renderer::palette::rgb::Srgb;
+use amethyst::window::DisplayConfig;
 
 fn get_display_config() -> std::io::Result<DisplayConfig> {
     Ok(DisplayConfig {
         title: "voxld".to_string(),
-        fullscreen: false,
+        fullscreen: Option::None,
         dimensions: Some((960, 540)),
-        vsync: false,
-        multisampling: 1,
         visibility: true,
         ..Default::default()
     })
 }
 
 fn run() -> amethyst::Result<()> {
+    amethyst::start_logger(amethyst::LoggerConfig::default());
+
     let display_config = get_display_config().unwrap();
 
-    let game = Application::build("", app::PhantomInit)?
-        .with_frame_limit(
-            FrameRateLimitStrategy::SleepAndYield(Duration::from_millis(2)),
-            300,
-        )
-        // .with_frame_limit(
-        //     FrameRateLimitStrategy::Unlimited,
-        //     0,
-        // )
+    let game_data = GameDataBuilder::default()
         .with_bundle(voxel::VoxelBundle)?
         .with_bundle(amethyst::core::transform::TransformBundle::new())?
-        .with_bundle(amethyst::utils::fps_counter::FPSCounterBundle::default())?
+        .with_bundle(amethyst::utils::fps_counter::FpsCounterBundle::default())?
         .with(system::IntervalSystem::wrap(log_fps::LogFps, Duration::from_secs(1)), "debug_log_fps", &[])
-        .register::<system::ConstantRotation>()
         .with(system::ConstantRotationSystem::default(), "constant_rotation_system", &[])
-        .with_bundle(amethyst::renderer::RenderBundle::new())?;
-    
-    let pipe = {
-        Pipeline::build().with_stage(
-            Stage::with_backbuffer()
-                .clear_target([0.01, 0.02, 0.04, 1.0], 1.0)
-                .with_pass(DrawShaded::<PosNormTex>::default())
-        )
-    };
+        .with(amethyst::utils::auto_fov::AutoFovSystem::default(), "auto_fov", &[])
+        .with_bundle(
+            RenderingBundle::<DefaultBackend>::new()
+                .with_plugin(RenderToWindow::from_config(display_config))
+                .with_plugin(RenderShaded3D::default())
+                .with_plugin(RenderSkybox::with_colors(
+                    Srgb::new(0.82, 0.51, 0.50),
+                    Srgb::new(0.18, 0.11, 0.85),
+                )),
+        )?;
 
-    Ok(
-        game
-            .with_local(RenderSystem::build(pipe, Some(display_config))?)
-            .build()?
-            .run()
-    )
+
+    let mut game = Application::build("", app::PhantomInit)?
+        .build(game_data)?;
+
+    game.run();
+    Ok(())
 }
 
 fn main() {

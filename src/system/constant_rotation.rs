@@ -4,11 +4,12 @@ use specs::{
     HashMapStorage,
     ReadStorage,
     WriteStorage,
-    Fetch,
     Join,
 };
-use cgmath::{vec3, Deg};
-use amethyst::core::{LocalTransform, Time};
+use shred::{Fetch, ReadExpect};
+//use cgmath::{vec3, Deg};
+//use amethyst::core::math::Vector3;
+use amethyst::core::{Transform, Time};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ConstantRotation;
@@ -22,9 +23,9 @@ pub struct ConstantRotationSystem;
 
 impl<'a> System<'a> for ConstantRotationSystem {
     type SystemData = (
-        Fetch<'a, Time>,
+        ReadExpect<'a, Time>,
         ReadStorage<'a, ConstantRotation>,
-        WriteStorage<'a, LocalTransform>,
+        WriteStorage<'a, Transform>,
     );
 
     fn run(&mut self, (
@@ -35,9 +36,9 @@ impl<'a> System<'a> for ConstantRotationSystem {
         let delta_time = time.delta_seconds();
 
         (&constant_rotations, &mut local_transforms)
-        .join()
-        .for_each(|(_constant_rotation, local_transform)| {
-            local_transform.rotate_local(vec3(0., 1., 0.), Deg(10. * delta_time));
-        });
+            .join()
+            .for_each(|(_constant_rotation, local_transform)| {
+                local_transform.prepend_rotation_y_axis(0.174533 * delta_time);
+            });
     }
 }

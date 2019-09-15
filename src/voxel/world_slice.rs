@@ -8,13 +8,13 @@ use super::{
 };
 use specs::{
     Storage,
-    Fetch,
-    MaskedStorage,
+    storage::MaskedStorage,
 };
+use shred::ReadExpect;
 
 pub struct WorldSlice<'a, 'b: 'a, T: 'b> {
     chunk_datas: &'a Storage<'b, ChunkData, T>,
-    voxel_world: &'a Fetch<'b, VoxelWorld>,
+    voxel_world: &'a ReadExpect<'b, VoxelWorld>,
 
     /// chunk index representing the origin for this slice
     origin: (i32, i32, i32),
@@ -26,7 +26,7 @@ pub struct WorldSlice<'a, 'b: 'a, T: 'b> {
 impl<'a, 'b: 'a, T: 'b> WorldSlice<'a, 'b, T>
 where T: Deref<Target=MaskedStorage<ChunkData>> {
     pub fn new(chunk_datas: &'a Storage<'b, ChunkData, T>,
-               voxel_world: &'a Fetch<'b, VoxelWorld>,
+               voxel_world: &'a ReadExpect<'b, VoxelWorld>,
                origin: (i32, i32, i32)) -> WorldSlice<'a, 'b, T>
     {
         // Produce the Moore neighborhood of the origin chunk

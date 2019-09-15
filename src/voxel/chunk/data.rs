@@ -23,11 +23,8 @@ fn in_range<V: PartialOrd>(low: V, high: V, value: V) -> bool {
 }
 
 impl ChunkData {
-    #[inline]
+    #[inline(always)]
     pub fn get_voxel(&self, index: (usize, usize, usize)) -> Voxel {
-        debug_assert!(in_range(0, 16, index.0));
-        debug_assert!(in_range(0, 16, index.1));
-        debug_assert!(in_range(0, 16, index.2));
         self.data[index.2][index.1][index.0]
     }
 
@@ -38,18 +35,14 @@ impl ChunkData {
         self.get_voxel(index)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn set_voxel(&mut self, index: (usize, usize, usize), value: Voxel) {
-        debug_assert!(in_range(0, 16, index.0));
-        debug_assert!(in_range(0, 16, index.1));
-        debug_assert!(in_range(0, 16, index.2));
         self.data[index.2][index.1][index.0] = value;
     }
 
     /// Get an iterator over a cross section of the chunk's data.
     #[allow(unused)]
     pub fn cross_section<'s>(&'s self, axis: Axis, depth: usize) -> CrossSectionIter<'s> {
-        debug_assert!(in_range(0, 16, depth));
         CrossSectionIter {
             data: &self.data,
             axis: axis,
